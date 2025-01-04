@@ -1,49 +1,81 @@
-const express = require('express')
-const dotenv = require('dotenv')
+// const express = require('express')
+// const dotenv = require('dotenv')
+// const mysql = require('mysql2')
+// const cors = require('cors')
 
+// const app = express()
+// dotenv.config()
 
-const app = express()
-dotenv.config()
-app.use(express.json())
+// app.use(cors())
+// app.use(express.json())
+// app.use(express.urlencoded({ extended: true }));
 
-const PORT = process.env.DB_PORT;
+// const PORT = process.env.DB_PORT
 
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
-})
+// const db = mysql.createConnection({
+//     host: process.env.DB_HOST,
+//     user: process.env.DB_USER,
+//     password: process.env.DB_PASSWORD,
+//     database: process.env.DB_NAME
+// })
+
+// db.connect((err) => {
+//     if (err) {
+//         console.log(err)
+//     }
+//     else {
+//         console.log('Connection Done!!')
+//     }
+// })
 
 app.post('/signin', (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required.' });
+        return res.status(400).json({ message: 'Enter email or password' });
     }
 
-    const query = 'SELECT * FROM users WHERE email = ?';
-    db.query(query, [email], (err, results) => {
+    const query = 'SELECT * FROM login WHERE email = ? AND password = ?';
+
+    db.query(query, [email, password], (err, result) => { 
         if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({ message: 'Internal server error.' });
+            return res.status(500).json({ message: 'Internal Error' });
         }
-
-        if (results.length === 0) {
-            return res.status(404).json({ message: 'User not found.' });
+        if (result.length > 0) {
+            return res.status(200).json({ message: 'Login Successful' });
+        } else {
+            return res.status(400).json({ error: 'Invalid Email or Password' });
         }
-
-        const user = results[0];
-        if (password !== user.password) {
-            return res.status(401).json({ message: 'Invalid email or password.' });
-        }
-
-        // Successful login
-        res.status(200).json({ message: 'Login successful.', user: { id: user.id, email: user.email } });
     });
 });
 
 
-app.listen((PORT), () => {
-    console.log(`Server is running on port ${PORT}`)
-})
+// app.listen((PORT), () => {
+//     console.log(`Server is running on port ${PORT}`)
+// })
+
+
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);    
+
+    try {
+      const response = await axios.post('http://localhost:8080/signin', {
+        email,
+        password
+      });
+
+      if (response.status === 200) {
+        navigate('/home');
+      }
+    } catch (err) {
+      setTimeout(() => {
+        if (err.response) {
+          toast.error('Invalid credentials. Please try again.');
+        } else {
+          toast.error('Something went wrong. Please try again later.');
+        }
+      setLoading(false);
+      }, 2000);
+    }
+  };
