@@ -45,29 +45,28 @@ const SignIn = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8080/signin', {
-        email,
-        password
-      })
+        const response = await axios.post('http://localhost:8080/api/signin', {
+            email,
+            password
+        }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
 
-      if(response.status == 200){
-        toast.success('Login Successfull');
-        navigate('/home');
-      }
-    }
-    catch (err){
-      setTimeout(() => {
-        if(err.response){  
-          toast.error('Invalid Credentials');
+        if (response.status === 200) {
+            toast.success('Login Successful');
+            navigate('/home');
         }
-        else{
-          toast.error('Network Error');
-        }
-        setLoading(false)
-      }, 1000)
+    } catch (err) {
+        setTimeout(() => {
+            setLoading(false);
+            if (err.response) {
+                toast.error(err.response.data.message || 'Invalid Credentials');
+            } else {
+                toast.error('Network Error');
+            }
+        }, 1000);
     }
-
- }
+};
 
   return (
     <>

@@ -75,12 +75,12 @@ const handleResetPassword = async () => {
     return;
   }
 
-  if (!passwordValidationRegex.test(password)) {
-    toast.error(
-      "Password must be 8 characters with uppercase, lowercase, number, and special character"
-    );
-    return;
-  }
+  // if (!passwordValidationRegex.test(password)) {
+  //   toast.error(
+  //     "Password must be 8 characters with uppercase, lowercase, number, and special character"
+  //   );
+  //   return;
+  // }
 
   if (password !== confirmPassword) {
     toast.error("Passwords do not match");

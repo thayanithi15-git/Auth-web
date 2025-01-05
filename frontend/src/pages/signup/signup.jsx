@@ -26,6 +26,9 @@ import {
   GitHub,
   LinkedIn
 } from '@mui/icons-material';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -34,7 +37,70 @@ const SignUp = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  return (
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [check, setCheck] = useState(false);
+
+  const handleCreateAccount = async (e) => {
+    e.preventDefault();
+    if (!name || !email || !password || !confirmPassword) {
+      return toast.error("Please fill in all fields");
+    }
+
+    const emailValidationRegex =
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const passwordValidationRegex =
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&^#])[A-Za-z\d@$!%*?&^#]{8,}$/;
+
+    if (!emailValidationRegex.test(email)) {
+      return toast.error("Invalid email address");
+    }
+
+    // if (!passwordValidationRegex.test(password)) {
+    //   return toast.error(
+    //     "Password must be 8 characters with uppercase, lowercase, number, and special character"
+    //   );
+    // }
+
+    if (password !== confirmPassword) {
+      return toast.error("Passwords do not match");
+    }
+
+    if (!check) {
+      return toast.error("Please agree to terms and conditions");
+    }
+
+    try {
+      const response = await axios.post("http://localhost:8080/api/signup", {
+        name,
+        email,
+        password,
+      } , {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 200) {
+        setName("");
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setCheck(false);
+        toast.success("Account created successfully");
+
+      } else {
+        toast.error("Failed to create account");
+      }
+    } catch (error) {
+      toast.error("Failed to create account error");
+    }
+  };
+
+return (
+  <>
     <Box
       sx={{
         height: '100vh',
@@ -97,6 +163,8 @@ const SignUp = () => {
                 fullWidth
                 label="Full Name"
                 variant="outlined"
+                placeholder='Enter Name'
+                onChange={(e) => setName(e.target.value)}
                 required
                 InputProps={{
                   startAdornment: (
@@ -110,6 +178,8 @@ const SignUp = () => {
               <TextField
                 fullWidth
                 label="Email Address"
+                placeholder='Enter Email'
+                onChange={(e) => setEmail(e.target.value)}
                 type="email"
                 variant="outlined"
                 required
@@ -127,6 +197,8 @@ const SignUp = () => {
                 label="Password"
                 type={showPassword ? 'text' : 'password'}
                 variant="outlined"
+                placeholder='Enter Password'
+                onChange={(e) => setPassword(e.target.value)}
                 required
                 InputProps={{
                   startAdornment: (
@@ -152,6 +224,8 @@ const SignUp = () => {
                 label="Confirm Password"
                 type={showConfirmPassword ? 'text' : 'password'}
                 variant="outlined"
+                placeholder='Confirm your password'
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 InputProps={{
                   startAdornment: (
@@ -173,7 +247,7 @@ const SignUp = () => {
               />
 
               <FormControlLabel
-                control={<Checkbox color="primary" />}
+                control={<Checkbox color="primary" onChange={(event) => setCheck(event.target.checked)} />}
                 label={
                   <Typography variant="body2" color="text.secondary">
                     I agree to the{' '}
@@ -205,6 +279,7 @@ const SignUp = () => {
               />
 
               <Button
+                onClick={handleCreateAccount}
                 fullWidth
                 variant="contained"
                 size="large"
@@ -286,7 +361,21 @@ const SignUp = () => {
         </Paper>
       </Container>
     </Box>
-  );
+    <ToastContainer
+      position="top-right"
+      autoClose={5000}
+      hideProgressBar={false}
+      newestOnTop={false}
+      closeOnClick={false}
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+      theme="light"
+    // transition={Bounce}
+    />
+  </>
+);
 };
 
 export default SignUp;
