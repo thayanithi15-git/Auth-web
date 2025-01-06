@@ -2,62 +2,47 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const db = require('../utils/db'); // Ensure your MySQL connection is set up correctly
+const db = require('../utils/db');
+const cors = require('cors');
+const dotenv = require('dotenv');
 
+// Load environment variables
+dotenv.config();
+
+// Initialize Express app
+const app = express();
+
+// Middleware to serve static files (uploads)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Middleware to handle JSON requests and CORS
+app.use(express.json());
+app.use(cors());
+
+// Configure Multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Append current timestamp to avoid duplicate filenames
+  }
+});
+const upload = multer({ storage: storage });
+
+// Define routes
 const router = express.Router();
 
-// Set up the uploads directory
-const uploadDir = path.join(__dirname, '..', 'uploads');
-
-// Check if the directory exists, if not, create it
-if (!fs.existsSync(uploadDir)) {
-  try {
-    fs.mkdirSync(uploadDir, { recursive: true });
-    console.log(`Uploads directory created at: ${uploadDir}`);
-  } catch (err) {
-    console.error(`Failed to create uploads directory: ${err.message}`);
-    process.exit(1); // Exit if the directory cannot be created
-  }
-}
-
-// Set up Multer storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir); // Save files to the uploads directory
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + path.extname(file.originalname); // Add timestamp to avoid conflicts
-    cb(null, uniqueName);
-  },
-});
-
-// Initialize Multer with file size and type validation
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
-  fileFilter: (req, file, cb) => {
-    const fileTypes = /jpeg|jpg|png|gif/;
-    const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = fileTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      cb(null, true);
-    } else {
-      console.error('File rejected:', file.originalname, file.mimetype);
-      cb(new Error('Only image files are allowed!'));
-    }
-  },
-});
-
-// Handle the POST request to add products
+// Route to add products
 router.post('/add-products', upload.single('img'), (req, res) => {
   // Validate if file was uploaded
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded or invalid file type' });
   }
 
+  // Extract product data from the request body
   const { name, description, amt, category, delivery_date, discount, ratings } = req.body;
-  const img = `uploads/${req.file.filename}`; // Save relative path to the database
+  const img = req.file ? req.file.path.replace(/\\/g, '/') : null; // Save relative path to the database
 
   // Validate required fields
   if (!name || !description || !amt || isNaN(amt)) {
@@ -65,8 +50,7 @@ router.post('/add-products', upload.single('img'), (req, res) => {
   }
 
   // SQL query to insert the product into the database
-  const query =
-    'INSERT INTO products (img, name, description, amt, category, delivery_date, discount, ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+  const query = 'INSERT INTO products (img, name, description, amt, category, delivery_date, discount, ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
 
   db.query(
     query,
@@ -81,15 +65,33 @@ router.post('/add-products', upload.single('img'), (req, res) => {
   );
 });
 
-// Global error handler for multer and other errors
-router.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    return res.status(400).json({ message: err.message });
-  } else if (err) {
-    console.error(err);
-    return res.status(500).json({ message: err.message });
-  }
-  next();
+// Route to list products
+router.get('/list-products', (req, res) => {
+  const query = 'SELECT * FROM products ORDER BY id DESC LIMIT 10';
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ message: 'Error fetching products from the database' });
+    }
+    res.json(results);
+  });
 });
 
+// Route to debug uploaded files in the uploads directory
+router.get('/debug-uploads', (req, res) => {
+  fs.readdir('./uploads', (err, files) => {
+    if (err) {
+      return res.status(500).send('Error reading uploads directory');
+    }
+    res.json(files);
+  });
+});
+
+// Export the routes module
 module.exports = router;
+
+// Start the server (included in the main server file)
+// const PORT = process.env.PORT || 8080;
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+// });
