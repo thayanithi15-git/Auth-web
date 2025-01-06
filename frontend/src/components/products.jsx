@@ -5,7 +5,7 @@ import React, { useState } from 'react'
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-function Products({ handleFormClose }) {
+function Products({ handleFormClose , handleSubmitted}) {
 
     const [product, setProduct] = useState({
         name: '',
@@ -64,6 +64,7 @@ function Products({ handleFormClose }) {
         console.error('Error adding product:', error);
         toast.error('Failed to add product. Please try again.');
     }
+    handleSubmitted()
 };
 
 

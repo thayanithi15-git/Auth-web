@@ -77,6 +77,40 @@ router.get('/list-products', (req, res) => {
   });
 });
 
+router.post('/cart', (req, res) => {
+  const { name } = req.body;
+console.log("name ",name)
+  // Check if the product is already in the cart
+  const checkQuery = 'SELECT * FROM products WHERE name = ?';
+  db.query(checkQuery, [name], (err, results) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ message: 'Error checking product in cart' });
+    }
+
+    if (results.length > 0) {
+      const product = results[0];
+
+      if (product.cart === 1) {
+        return res.status(400).json({ message: 'Product already in cart' });
+      } else {
+        // Update the product's cart value to 1 (added to cart)
+        const updateQuery = 'UPDATE products SET cart = 1 WHERE name = ?';
+        db.query(updateQuery, [name], (updateErr) => {
+          if (updateErr) {
+            console.error('Error updating cart:', updateErr);
+            return res.status(500).json({ message: 'Error adding product to cart' });
+          }
+          res.json({ message: 'Product added to cart' });
+        });
+      }
+    } else {
+      res.status(404).json({ message: 'Product not found' });
+    }
+  });
+});
+
+
 // Route to debug uploaded files in the uploads directory
 router.get('/debug-uploads', (req, res) => {
   fs.readdir('./uploads', (err, files) => {
